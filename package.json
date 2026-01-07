@@ -8,10 +8,12 @@
   },
   "scripts": {
     "dev": "npx vite",
-    "build": "npx vite build",
-    "build:dev": "npx vite build --mode development",
+    "build": "vite build",
+    "build:vercel": "bash vercel-build.sh",
+    "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "npx vite preview"
+    "preview": "vite preview",
+    "prepare": "chmod +x vercel-build.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
