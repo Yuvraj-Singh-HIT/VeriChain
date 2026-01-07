@@ -1,4 +1,5 @@
 node_modules
+hardhat/node_modules
 .env
 backend/.env
 hardhat/artifacts
