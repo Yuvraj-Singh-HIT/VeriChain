@@ -1,5 +1,5 @@
 // API configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://verichain-1420.onrender.com';
 
 export const API_ENDPOINTS = {
   login: `${API_BASE_URL}/api/login`,
