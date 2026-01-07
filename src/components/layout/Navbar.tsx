@@ -1,16 +1,20 @@
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Box, 
-  Truck, 
-  Store, 
-  Scan, 
-  Shield, 
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Truck,
+  Store,
+  Scan,
+  Shield,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  DollarSign,
+  ShoppingCart,
+  LogOut
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const navItems = [
   { path: '/', label: 'Home', icon: Shield },
@@ -18,11 +22,36 @@ const navItems = [
   { path: '/distributor', label: 'Distributor', icon: Truck },
   { path: '/retailer', label: 'Retailer', icon: Store },
   { path: '/customer', label: 'Verify', icon: Scan },
+  { path: '/msme', label: 'MSME', icon: FileText },
+  { path: '/investor', label: 'Investor', icon: DollarSign },
+  { path: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
 ];
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      setIsAuthenticated(!!token);
+    };
+
+    checkAuth();
+
+    const handleStorageChange = () => checkAuth();
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    navigate('/login');
+  };
 
   return (
     <>
@@ -36,7 +65,7 @@ const Navbar = () => {
           <div className="glass-strong rounded-2xl px-6 py-3 flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
-              <motion.div 
+              <motion.div
                 className="relative w-10 h-10"
                 whileHover={{ scale: 1.1, rotate: 180 }}
                 transition={{ duration: 0.5 }}
@@ -46,9 +75,14 @@ const Navbar = () => {
                   <Shield className="w-5 h-5 text-primary" />
                 </div>
               </motion.div>
-              <span className="font-heading font-bold text-xl text-gradient">
-                VeriChain
-              </span>
+              <div className="flex flex-col">
+                <span className="font-heading font-bold text-xl text-gradient">
+                  VeriChain
+                </span>
+                <span className="text-xs text-orange-500 font-medium">
+                  Sepolia Testnet
+                </span>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}
@@ -86,15 +120,27 @@ const Navbar = () => {
             </div>
 
             {/* Auth Button */}
-            <Link to="/login">
+            {isAuthenticated ? (
               <motion.button
-                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-heading font-semibold text-sm glow-primary"
+                onClick={handleLogout}
+                className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-heading font-semibold text-sm"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Sign In
+                <LogOut className="w-4 h-4" />
+                Log Out
               </motion.button>
-            </Link>
+            ) : (
+              <Link to="/login">
+                <motion.button
+                  className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-heading font-semibold text-sm glow-primary"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Sign In
+                </motion.button>
+              </Link>
+            )}
 
             {/* Mobile Menu Button */}
             <motion.button
@@ -152,14 +198,28 @@ const Navbar = () => {
             transition={{ delay: navItems.length * 0.1 }}
             className="mt-6 pt-6 border-t border-border"
           >
-            <Link to="/login" onClick={() => setIsOpen(false)}>
+            {isAuthenticated ? (
               <motion.button
-                className="w-full p-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-heading font-semibold glow-primary"
+                onClick={() => {
+                  handleLogout();
+                  setIsOpen(false);
+                }}
+                className="w-full p-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-heading font-semibold flex items-center justify-center gap-2"
                 whileTap={{ scale: 0.98 }}
               >
-                Sign In
+                <LogOut className="w-5 h-5" />
+                Log Out
               </motion.button>
-            </Link>
+            ) : (
+              <Link to="/login" onClick={() => setIsOpen(false)}>
+                <motion.button
+                  className="w-full p-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-heading font-semibold glow-primary"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Sign In
+                </motion.button>
+              </Link>
+            )}
           </motion.div>
         </div>
       </motion.div>

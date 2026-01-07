@@ -1,24 +1,71 @@
-import Navbar from '../components/layout/Navbar';
-import Dashboard from '../components/Dashboard';
-import ProductCreator from '../components/ProductCreator';
-import { Factory, Package, CheckCircle, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react'
+import Navbar from '../components/layout/Navbar'
+import Dashboard from '../components/Dashboard'
+import ProductCreator from '../components/ProductCreator'
+import ProductList from '../components/ProductList'
+import History from '../components/History'
+import Settings from '../components/Settings'
+import { Factory, Package, CheckCircle, TrendingUp } from 'lucide-react'
 
 const Manufacturer = () => {
+  const [productCount, setProductCount] = useState(0)
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('http://localhost:8001/api/products')
+      const data = await res.json()
+      setProductCount(data.products.length)
+    } catch (error) {
+      console.error('Failed to fetch products', error)
+    }
+  }
+
   const stats = [
-    { label: 'Total Products', value: '1,234', change: '+12%', icon: Package },
-    { label: 'NFTs Minted', value: '1,189', change: '+8%', icon: Factory },
-    { label: 'Verified', value: '98.2%', change: '+2.1%', icon: CheckCircle },
-    { label: 'Revenue', value: '₹1.18Cr', change: '+18%', icon: TrendingUp },
-  ];
+    {
+      label: 'Total Products',
+      value: productCount.toLocaleString(),
+      change: '+0%',
+      icon: Package,
+    },
+    {
+      label: 'NFTs Minted',
+      value: productCount.toLocaleString(),
+      change: '+0%',
+      icon: Factory,
+    },
+    {
+      label: 'Verified',
+      value: '100%',
+      change: '+0%',
+      icon: CheckCircle,
+    },
+    {
+      label: 'Revenue',
+      value: '₹0',
+      change: '+0%',
+      icon: TrendingUp,
+    },
+  ]
+
+  const tabContents = {
+    overview: <ProductCreator />,
+    products: <ProductList />,
+    history: <History />,
+    settings: <Settings />,
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <Dashboard role="manufacturer" title="Welcome, Manufacturer" stats={stats}>
+      <Dashboard role="manufacturer" title="Welcome, Manufacturer" stats={stats} tabContents={tabContents} tabs={['overview', 'products', 'settings']}>
         <ProductCreator />
       </Dashboard>
     </div>
-  );
-};
+  )
+}
 
-export default Manufacturer;
+export default Manufacturer

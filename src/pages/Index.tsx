@@ -9,6 +9,7 @@ import FloatingCubes from '../components/3d/FloatingCubes';
 import FeaturesSection from '../components/sections/FeaturesSection';
 import HowItWorksSection from '../components/sections/HowItWorksSection';
 import CTASection from '../components/sections/CTASection';
+import AIChatbot from '../components/AIChatbot';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -74,6 +75,9 @@ const Index = () => {
         <CTASection />
       </main>
       <Footer />
+      <div className="fixed bottom-4 right-4 z-50">
+        <AIChatbot />
+      </div>
     </div>
   );
 };

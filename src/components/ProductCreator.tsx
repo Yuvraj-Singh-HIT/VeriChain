@@ -1,15 +1,16 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { 
-  Package, 
-  FileText, 
-  Hash, 
-  Calendar, 
+import { useState, useRef } from 'react';
+import {
+  Package,
+  FileText,
+  Hash,
+  Calendar,
   Loader2,
   CheckCircle,
   QrCode,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Download
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
@@ -33,25 +34,63 @@ const ProductCreator = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate blockchain minting
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockQrData = JSON.stringify({
-      product_id: `PROD-${Date.now()}`,
-      nft_token_id: Math.floor(Math.random() * 10000),
-      verification_token: crypto.randomUUID(),
-      api_endpoint: 'https://api.verichain.io/verify'
+  e.preventDefault();
+  setIsLoading(true);
+  
+  try {
+    const response = await fetch('http://localhost:8001/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
     });
     
-    setQrData(mockQrData);
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Use the unique QR code from backend
+      const qrCodeData = JSON.stringify({
+        product_id: data.product_id,
+        nft_token_id: data.nft_token_id,
+        ipfs_cid: data.ipfs_cid,
+        metadata_hash: data.metadata_hash,
+        qr_code: data.qr_code,
+        verification_token: data.verification_token,
+        serial_number: formData.serial_number,
+        batch_id: formData.batch_id,
+        verification_url: 'https://api.verichain.io/verify'
+      });
+      
+      setQrData(qrCodeData);
+      setIsComplete(true);
+    } else {
+      alert(data.detail || 'Failed to create product');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Network error. Make sure backend is running on port 8001');
+  } finally {
     setIsLoading(false);
-    setIsComplete(true);
-  };
+  }
+};
+
+ const downloadQR = () => {
+   if (!qrRef.current) return;
+   const svg = qrRef.current.querySelector('svg');
+   if (!svg) return;
+   const svgData = new XMLSerializer().serializeToString(svg);
+   const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+   const url = URL.createObjectURL(svgBlob);
+   const link = document.createElement('a');
+   link.href = url;
+   link.download = `qr-${formData.serial_number}.svg`;
+   document.body.appendChild(link);
+   link.click();
+   document.body.removeChild(link);
+   URL.revokeObjectURL(url);
+ };
 
   const inputClasses = "w-full px-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-foreground placeholder:text-muted-foreground";
   const labelClasses = "block text-sm font-medium text-foreground mb-2";
@@ -83,6 +122,7 @@ const ProductCreator = () => {
 
           {/* QR Code */}
           <motion.div
+            ref={qrRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -141,10 +181,12 @@ const ProductCreator = () => {
               Create Another
             </motion.button>
             <motion.button
+              onClick={downloadQR}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-medium"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
+              <Download className="w-4 h-4 mr-2 inline" />
               Download QR
             </motion.button>
           </div>

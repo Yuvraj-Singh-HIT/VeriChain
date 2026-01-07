@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  CheckCircle, 
-  XCircle, 
-  Shield, 
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import {
+  Camera,
+  Upload,
+  CheckCircle,
+  XCircle,
+  Shield,
   Package,
   MapPin,
   Clock,
@@ -16,7 +17,9 @@ import {
 
 interface VerificationResult {
   authentic: boolean;
+  status: string; // "genuine", "tampered", "invalid"
   product: {
+    id: string;
     name: string;
     serial_number: string;
     batch_id: string;
@@ -32,111 +35,188 @@ interface VerificationResult {
   }>;
 }
 
-const QRScanner = () => {
+interface QRScannerProps {
+  mode?: 'customer' | 'supply-chain';
+  role?: string;
+  onClose?: () => void;
+}
+
+const QRScanner = ({ mode = 'customer', role, onClose }: QRScannerProps = {}) => {
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [showActions, setShowActions] = useState(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const startScanning = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      scannerRef.current = new Html5QrcodeScanner(
+        'qr-reader',
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        false
+      );
+
+      scannerRef.current.render(
+        (decodedText: string) => {
+          handleQRDetected(decodedText);
+        },
+        (errorMessage: string) => {
+          console.log('QR scan error:', errorMessage);
+        }
+      );
+
       setScanning(true);
       setError(null);
-      
-      // Simulate QR detection after 3 seconds
-      setTimeout(() => {
-        handleQRDetected();
-      }, 3000);
     } catch (err) {
-      setError('Camera access denied. Please allow camera permissions.');
+      setError('Failed to initialize camera. Please check permissions.');
     }
   };
 
   const stopScanning = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(console.error);
+      scannerRef.current = null;
     }
     setScanning(false);
   };
 
-  const handleQRDetected = async () => {
+  const handleQRDetected = async (qrData: string) => {
     stopScanning();
     setLoading(true);
-    
-    // Simulate API verification
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const mockResult: VerificationResult = {
-      authentic: Math.random() > 0.2, // 80% chance of authentic
-      product: {
-        name: 'Premium Leather Handbag',
-        serial_number: 'SN-2024-001234',
-        batch_id: 'BATCH-2024-Q1-001',
-        status: 'at_retailer',
-        nft_token_id: '12847',
-      },
-      supply_chain_history: [
-        {
-          action: 'manufactured',
-          actor_role: 'Manufacturer',
-          location: 'Milan, Italy',
-          timestamp: '2024-01-15T10:30:00Z',
-          notes: 'Product manufactured and NFT minted',
+
+    try {
+      // Parse QR data - assume JSON format: {"tokenId": 123, "verificationToken": "abc..."}
+      const parsedData = JSON.parse(qrData);
+      const { tokenId, verificationToken } = parsedData;
+
+      // Call backend verification API
+      const response = await fetch('http://localhost:8001/api/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          action: 'shipped',
-          actor_role: 'Manufacturer',
-          location: 'Milan, Italy',
-          timestamp: '2024-01-16T14:00:00Z',
-          notes: 'Shipped to distributor',
-        },
-        {
-          action: 'received',
-          actor_role: 'Distributor',
-          location: 'Frankfurt, Germany',
-          timestamp: '2024-01-18T09:15:00Z',
-          notes: 'Received at distribution center',
-        },
-        {
-          action: 'shipped',
-          actor_role: 'Distributor',
-          location: 'Frankfurt, Germany',
-          timestamp: '2024-01-19T11:00:00Z',
-          notes: 'Shipped to retailer',
-        },
-        {
-          action: 'received',
-          actor_role: 'Retailer',
-          location: 'New York, USA',
-          timestamp: '2024-01-22T16:30:00Z',
-          notes: 'Arrived at store',
-        },
-      ],
-    };
-    
-    setResult(mockResult);
-    setLoading(false);
+        body: JSON.stringify({
+          token_id: parseInt(tokenId),
+          verification_token: verificationToken,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const verificationResult: VerificationResult = {
+          authentic: data.authentic,
+          status: data.status,
+          product: {
+            id: data.product.id,
+            name: data.product.name,
+            serial_number: data.product.serial_number,
+            batch_id: data.product.batch_id,
+            status: data.product.status,
+            nft_token_id: data.product.nft_token_id,
+          },
+          supply_chain_history: data.supply_chain_history,
+        };
+        setResult(verificationResult);
+        if (mode === 'supply-chain') {
+          setShowActions(true);
+        }
+      } else {
+        setError(data.message || 'Verification failed');
+      }
+    } catch (err) {
+      console.error('Verification error:', err);
+      setError('Failed to verify product. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetScanner = () => {
     setResult(null);
     setError(null);
     setLoading(false);
+    setShowActions(false);
+  };
+
+  const handleImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const html5QrCode = new Html5Qrcode("file-scanner");
+      const qrCodeResult = await html5QrCode.scanFile(file, true);
+
+      // Clean up the scanner
+      await html5QrCode.clear();
+
+      // Process the QR code data
+      await handleQRDetected(qrCodeResult);
+    } catch (err) {
+      console.error('Image scan error:', err);
+      setError('Failed to scan QR code from image. Please ensure the image contains a valid QR code.');
+      setLoading(false);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleStatusUpdate = async (action: string) => {
+    if (!result) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8001/api/tracking_events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: result.product.id,
+          action: action,
+          actor: `${role} User`, // Could be made dynamic
+          role: role,
+          location: `${role} Facility`, // Could be made dynamic
+          notes: `Product ${action} by ${role}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Product marked as ${action} successfully!`);
+        if (onClose) onClose();
+      } else {
+        setError(data.detail || 'Failed to update product status');
+      }
+    } catch (err) {
+      console.error('Status update error:', err);
+      setError('Failed to update product status');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(console.error);
       }
     };
   }, []);
@@ -170,8 +250,8 @@ const QRScanner = () => {
       >
         {/* Authenticity Status */}
         <div className={`glass rounded-2xl p-6 mb-6 border ${
-          result.authentic 
-            ? 'border-green-500/30 bg-green-500/5' 
+          result.status === 'genuine'
+            ? 'border-green-500/30 bg-green-500/5'
             : 'border-red-500/30 bg-red-500/5'
         }`}>
           <div className="flex items-center gap-4">
@@ -180,10 +260,10 @@ const QRScanner = () => {
               animate={{ scale: 1 }}
               transition={{ type: "spring", duration: 0.5 }}
               className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                result.authentic ? 'bg-green-500/20' : 'bg-red-500/20'
+                result.status === 'genuine' ? 'bg-green-500/20' : 'bg-red-500/20'
               }`}
             >
-              {result.authentic ? (
+              {result.status === 'genuine' ? (
                 <CheckCircle className="w-8 h-8 text-green-500" />
               ) : (
                 <XCircle className="w-8 h-8 text-red-500" />
@@ -191,14 +271,18 @@ const QRScanner = () => {
             </motion.div>
             <div>
               <h2 className={`font-heading text-2xl font-bold ${
-                result.authentic ? 'text-green-500' : 'text-red-500'
+                result.status === 'genuine' ? 'text-green-500' : 'text-red-500'
               }`}>
-                {result.authentic ? 'GENUINE PRODUCT' : 'VERIFICATION FAILED'}
+                {result.status === 'genuine' ? 'GENUINE PRODUCT' :
+                 result.status === 'tampered' ? 'TAMPERED PRODUCT' :
+                 'INVALID TOKEN'}
               </h2>
               <p className="text-muted-foreground">
-                {result.authentic 
+                {result.status === 'genuine'
                   ? 'This product is authentic and verified on blockchain'
-                  : 'This product could not be verified. It may be counterfeit.'
+                  : result.status === 'tampered'
+                  ? 'Product metadata has been tampered with'
+                  : 'Invalid or expired verification token'
                 }
               </p>
             </div>
@@ -287,21 +371,54 @@ const QRScanner = () => {
 
         {/* Actions */}
         <div className="flex gap-4">
-          <motion.button
-            onClick={resetScanner}
-            className="flex-1 px-6 py-3 glass border border-border rounded-xl font-medium hover:bg-muted transition-colors"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Scan Another
-          </motion.button>
-          <motion.button
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-medium"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Report Issue
-          </motion.button>
+          {mode === 'supply-chain' && showActions ? (
+            <>
+              <motion.button
+                onClick={() => handleStatusUpdate('received')}
+                className="flex-1 px-6 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Mark as Received
+              </motion.button>
+              <motion.button
+                onClick={() => handleStatusUpdate('shipped')}
+                className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Mark as Shipped
+              </motion.button>
+              {role === 'retailer' && (
+                <motion.button
+                  onClick={() => handleStatusUpdate('sold')}
+                  className="flex-1 px-6 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Mark as Sold
+                </motion.button>
+              )}
+            </>
+          ) : (
+            <>
+              <motion.button
+                onClick={resetScanner}
+                className="flex-1 px-6 py-3 glass border border-border rounded-xl font-medium hover:bg-muted transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Scan Another
+              </motion.button>
+              <motion.button
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl font-medium"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Report Issue
+              </motion.button>
+            </>
+          )}
         </div>
       </motion.div>
     );
@@ -309,6 +426,9 @@ const QRScanner = () => {
 
   return (
     <div className="max-w-xl mx-auto">
+      {/* Hidden element for file scanning */}
+      <div id="file-scanner" className="hidden"></div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -317,36 +437,7 @@ const QRScanner = () => {
         {/* Scanner View */}
         <div className="relative aspect-square max-w-sm mx-auto mb-8 rounded-2xl overflow-hidden bg-black">
           {scanning ? (
-            <>
-              <video 
-                ref={videoRef}
-                autoPlay 
-                playsInline 
-                muted 
-                className="w-full h-full object-cover"
-              />
-              {/* Scanning overlay */}
-              <div className="absolute inset-0 border-2 border-primary/50 rounded-2xl">
-                {/* Corner markers */}
-                <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-primary" />
-                <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-primary" />
-                <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-primary" />
-                <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-primary" />
-                
-                {/* Scan line */}
-                <motion.div
-                  className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent"
-                  animate={{ top: ['10%', '90%', '10%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                />
-              </div>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 glass rounded-full text-sm">
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Scanning...
-                </span>
-              </div>
-            </>
+            <div id="qr-reader" className="w-full h-full" />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <Camera className="w-16 h-16 text-muted-foreground mb-4" />
@@ -390,6 +481,7 @@ const QRScanner = () => {
                 Start Camera
               </motion.button>
               <motion.button
+                onClick={handleImageUpload}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 glass border border-border rounded-xl font-medium hover:bg-muted transition-colors"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -397,6 +489,13 @@ const QRScanner = () => {
                 <Upload className="w-5 h-5" />
                 Upload Image
               </motion.button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </>
           )}
         </div>
