@@ -3,11 +3,7 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist",
-        "nodeVersion": "18.x"
-      }
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
@@ -15,13 +11,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    },
-    "scripts": {
-      "build": "npm run build:vercel"
-    }
-  }
+  ]
 }
