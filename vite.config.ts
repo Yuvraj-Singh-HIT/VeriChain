@@ -14,4 +14,11 @@ export default defineConfig(() => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Add base configuration for Vercel
+  base: "/",
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    sourcemap: true,
+  },
 }));
