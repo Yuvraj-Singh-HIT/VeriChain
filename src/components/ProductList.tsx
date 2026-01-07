@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Package, Calendar, Hash } from 'lucide-react';
+import { API_ENDPOINTS } from '../lib/api';
 
 interface Product {
   _id: string;
@@ -21,7 +22,7 @@ const ProductList = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/products');
+      const res = await fetch(API_ENDPOINTS.products);
       const data = await res.json();
       setProducts(data.products);
     } catch (error) {

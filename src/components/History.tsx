@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Timeline from './Timeline';
+import { API_ENDPOINTS } from '../lib/api';
 
 interface TrackingEvent {
   _id: string;
@@ -34,7 +35,7 @@ const History = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/products');
+      const res = await fetch(API_ENDPOINTS.products);
       const data = await res.json();
       setProducts(data.products || []);
     } catch (error) {
@@ -44,7 +45,7 @@ const History = () => {
 
   const fetchAllEvents = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/tracking_events');
+      const res = await fetch(API_ENDPOINTS.trackingEvents);
       const data = await res.json();
       const formattedEvents = (data.events || []).map((event: TrackingEvent) => ({
         id: event._id,
@@ -71,7 +72,7 @@ const History = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:8001/api/tracking_events/${productId}`);
+      const res = await fetch(`${API_ENDPOINTS.trackingEvents}/${productId}`);
       const data = await res.json();
       const formattedEvents = (data.events || []).map((event: TrackingEvent) => ({
         id: event._id,

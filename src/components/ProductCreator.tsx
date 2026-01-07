@@ -13,6 +13,7 @@ import {
   Download
 } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import { API_ENDPOINTS } from '@/lib/api';
 
 interface FormData {
   name: string;
@@ -39,9 +40,9 @@ const ProductCreator = () => {
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setIsLoading(true);
-  
+
   try {
-    const response = await fetch('http://localhost:8001/api/products', {
+    const response = await fetch(API_ENDPOINTS.products, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

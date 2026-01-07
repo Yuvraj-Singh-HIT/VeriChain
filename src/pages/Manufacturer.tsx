@@ -6,6 +6,7 @@ import ProductList from '../components/ProductList'
 import History from '../components/History'
 import Settings from '../components/Settings'
 import { Factory, Package, CheckCircle, TrendingUp } from 'lucide-react'
+import { API_ENDPOINTS } from '../lib/api'
 
 const Manufacturer = () => {
   const [productCount, setProductCount] = useState(0)
@@ -16,7 +17,7 @@ const Manufacturer = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/products')
+      const res = await fetch(API_ENDPOINTS.products)
       const data = await res.json()
       setProductCount(data.products.length)
     } catch (error) {

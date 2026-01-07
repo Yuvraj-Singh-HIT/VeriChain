@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import RiskScoring from './RiskScoring'
+import { API_ENDPOINTS } from '../lib/api'
 
 interface Props {
    setStats?: React.Dispatch<
@@ -36,7 +37,7 @@ const InvoiceFunder = ({ setStats }: Props) => {
 
   const fetchInvoices = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/get_invoices')
+      const res = await fetch(API_ENDPOINTS.getInvoices)
       const data = await res.json()
       setInvoices(data.invoices)
     } catch (error) {
@@ -65,7 +66,7 @@ const InvoiceFunder = ({ setStats }: Props) => {
         }
 
         // Persist to DB
-        fetch('http://localhost:8001/api/invoices_funded', {
+        fetch(API_ENDPOINTS.invoicesFunded, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
+import { API_ENDPOINTS } from '@/lib/api';
 
 interface VerificationResult {
   authentic: boolean;
@@ -96,7 +97,7 @@ const QRScanner = ({ mode = 'customer', role, onClose }: QRScannerProps = {}) =>
       const { tokenId, verificationToken } = parsedData;
 
       // Call backend verification API
-      const response = await fetch('http://localhost:8001/api/verify', {
+      const response = await fetch(API_ENDPOINTS.verify, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +183,7 @@ const QRScanner = ({ mode = 'customer', role, onClose }: QRScannerProps = {}) =>
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/api/tracking_events', {
+      const response = await fetch(API_ENDPOINTS.trackingEvents, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

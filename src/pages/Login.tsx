@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { API_ENDPOINTS } from '@/lib/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,14 +15,14 @@ const Login = () => {
   const [password, setPassword] = useState('');
 
 const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    const response = await fetch('http://localhost:8001/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
+e.preventDefault();
+
+try {
+  const response = await fetch(API_ENDPOINTS.login, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
     
     const data = await response.json();
     if (response.ok) {

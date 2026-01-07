@@ -4,6 +4,7 @@ import Dashboard from '../components/Dashboard'
 import InvoiceCreator from '../components/InvoiceCreator'
 import InvoiceSettlement from '../components/InvoiceSettlement'
 import { FileText, DollarSign, CheckCircle, TrendingUp } from 'lucide-react'
+import { API_ENDPOINTS } from '../lib/api'
 
 const MSME = () => {
   const [totalInvoices, setTotalInvoices] = useState(0)
@@ -16,7 +17,7 @@ const MSME = () => {
 
   const fetchInvoices = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/get_invoices')
+      const res = await fetch(API_ENDPOINTS.getInvoices)
       const data = await res.json()
       setTotalInvoices(data.invoices.length)
     } catch (err) {
@@ -26,7 +27,7 @@ const MSME = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/products')
+      const res = await fetch(API_ENDPOINTS.products)
       const data = await res.json()
       setNftsMinted(data.products.length)
     } catch (err) {

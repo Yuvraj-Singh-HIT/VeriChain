@@ -3,6 +3,7 @@ import Navbar from '../components/layout/Navbar'
 import Dashboard from '../components/Dashboard'
 import InvoiceFunder from '../components/InvoiceFunder'
 import { DollarSign, TrendingUp, PieChart, Wallet } from 'lucide-react'
+import { API_ENDPOINTS } from '../lib/api'
 
 interface InvestorStats {
   totalInvested: number
@@ -23,7 +24,7 @@ const Investor = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:8001/api/invoices_funded')
+        const res = await fetch(API_ENDPOINTS.invoicesFunded)
         const data = await res.json()
 
         setStats({

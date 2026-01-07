@@ -5,6 +5,7 @@ import ProductTracker from '../components/ProductTracker';
 import History from '../components/History';
 import Settings from '../components/Settings';
 import { Truck, Package, Clock, MapPin } from 'lucide-react';
+import { API_ENDPOINTS } from '../lib/api';
 
 const Distributor = () => {
   const [statsData, setStatsData] = useState({
@@ -24,7 +25,7 @@ const Distributor = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/distributor_stats');
+      const res = await fetch(API_ENDPOINTS.distributorStats);
       const data = await res.json();
       setStatsData(data);
     } catch (error) {

@@ -5,6 +5,7 @@ import ProductTracker from '../components/ProductTracker';
 import History from '../components/History';
 import Settings from '../components/Settings';
 import { Store, Package, ShoppingBag, Users } from 'lucide-react';
+import { API_ENDPOINTS } from '../lib/api';
 
 const Retailer = () => {
   const [statsData, setStatsData] = useState({
@@ -24,7 +25,7 @@ const Retailer = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/retailer_stats');
+      const res = await fetch(API_ENDPOINTS.retailerStats);
       const data = await res.json();
       setStatsData(data);
     } catch (error) {

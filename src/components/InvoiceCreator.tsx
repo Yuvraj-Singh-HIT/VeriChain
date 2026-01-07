@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import RiskScoring from './RiskScoring'
+import { API_ENDPOINTS } from '@/lib/api'
 
 const InvoiceCreator = () => {
   const [amount, setAmount] = useState('')
@@ -23,7 +24,7 @@ const InvoiceCreator = () => {
     try {
       setIsSaving(true)
 
-      const res = await fetch(`http://localhost:8001/api/invoices_create`, {
+      const res = await fetch(API_ENDPOINTS.invoicesCreate, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

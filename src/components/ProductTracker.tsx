@@ -10,6 +10,7 @@ import {
   Loader2,
   Send
 } from 'lucide-react';
+import { API_ENDPOINTS } from '../lib/api';
 
 interface Product {
   _id: string;
@@ -57,7 +58,7 @@ const ProductTracker = ({ role, userName }: ProductTrackerProps) => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8001/api/products');
+      const res = await fetch(API_ENDPOINTS.products);
       const data = await res.json();
       setProducts(data.products || []);
     } catch (error) {
@@ -67,7 +68,7 @@ const ProductTracker = ({ role, userName }: ProductTrackerProps) => {
 
   const fetchTrackingEvents = async (productId: string) => {
     try {
-      const res = await fetch(`http://localhost:8001/api/tracking_events/${productId}`);
+      const res = await fetch(`${API_ENDPOINTS.trackingEvents}/${productId}`);
       const data = await res.json();
       setTrackingEvents(data.events || []);
     } catch (error) {
@@ -87,7 +88,7 @@ const ProductTracker = ({ role, userName }: ProductTrackerProps) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8001/api/tracking_events', {
+      const response = await fetch(API_ENDPOINTS.trackingEvents, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
